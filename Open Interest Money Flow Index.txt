@@ -1,0 +1,196 @@
+//@version=4
+study("Open Interest Money Flow Index")
+src = close 
+
+adaptive        = input(title="Market Type ", options=["FUTURES", "OTHERS"], defval="FUTURES")
+
+bFX = false 
+
+//***** CFTC MARKET CODES *****
+
+// 1 - Futures
+
+sCode1 =
+
+         syminfo.root == "ZB" ? "020601" :  
+         syminfo.root == "ZN" ? "043602" :
+         syminfo.root == "ZQ" ? "045601" :
+         syminfo.root == "ZT" ? "042601" :
+         syminfo.root == "ZS" ? "005602" :
+         syminfo.root == "DC" ? "052641" :
+         syminfo.root == "GF" ? "061641" :
+         syminfo.root == "LBS" ? "058643" :
+         syminfo.root == "QG" ? "023655" :
+         syminfo.root == "QM" ? "067655" :
+         syminfo.root == "SOYBNUSD" ? "005602" :
+	     syminfo.root == "ZM" ? "026603" :  
+	     syminfo.root == "ZL" ? "007601" :  
+	     syminfo.root == "ZC" ? "002602" :  
+	     syminfo.root == "CORNUSD" ? "002602" :
+	     syminfo.root == "ZW" ? "001602" :  
+	     syminfo.root == "WHEATUSD" ? "001602" :
+	     syminfo.root == "KE" ? "001612" :  
+	     syminfo.root == "HE" ? "054642" :  
+	     syminfo.root == "LE" ? "057642" :  
+	     syminfo.root == "GC" ? "088691" :  
+	     syminfo.root == "XAUUSD" ? "088691" :
+	     syminfo.root == "SI" ? "084691" : 
+	     syminfo.root == "XAGUSD" ? "084691" :
+	     syminfo.root == "HG" ? "085692" :
+	     syminfo.root == "XCUUSD" ? "085692" :
+	     syminfo.root == "CL" ? "067651" :  
+	     syminfo.root == "WTICOUSD" ? "067651" : 
+	     syminfo.root == "BCOUSD" ? "06765T" :
+	     syminfo.root == "HO" ? "022651" :  
+	     syminfo.root == "RB" ? "111659" :  
+	     syminfo.root == "NG" ? "023651" :  
+	     syminfo.root == "NATGASUSD" ? "023651" :
+	     syminfo.root == "A6" ? "232741" :  
+	     syminfo.root == "6A" ? "232741" :
+	     syminfo.root == "AUDUSD" ? "232741" :
+	     syminfo.root == "B6" ? "096742" : 
+	     syminfo.root == "6B" ? "096742" : 
+	     syminfo.root == "6C" ? "090741" :
+	     syminfo.root == "CADUSD" ? "090741" :
+	     syminfo.root == "USDCAD" ? "090741" :
+	     syminfo.root == "GBPUSD" ? "096742" :
+	     syminfo.root == "USDGBP" ? "096742" :
+	     syminfo.root == "D6" ? "090741" :  
+	     syminfo.root == "CADUSD" ? "090741" :
+	     syminfo.root == "6Z" ? "122741" :
+	     syminfo.root == "USDZAR" ? "122741" :
+	     syminfo.root == "ZARUSD" ? "122741" :
+	     syminfo.root == "E6" ? "099741" :
+	     syminfo.root == "6E" ? "099741" :
+	     syminfo.root == "EURUSD" ? "099741" :
+	     syminfo.root == "J6" ? "097741" :  
+	     syminfo.root == "6J" ? "097741" : 
+	     syminfo.root == "JPYUSD" ? "097741" :
+	     syminfo.root == "USDJPY" ? "097741" :
+	     syminfo.root == "S6" ? "092741" : 
+	     syminfo.root == "6S" ? "092741" : 
+	     syminfo.root == "USDCHF" ? "092741" : 
+	     syminfo.root == "CHFUSD" ? "092741" :
+	     syminfo.root == "SB" ? "080732" :  
+	     syminfo.root == "SUGARUSD" ? "080732" :
+	     syminfo.root == "KC" ? "083731" :  
+	     syminfo.root == "CC" ? "073732" :  
+	     syminfo.root == "6N" ? "112741" : 
+	     syminfo.root == "6S" ? "092741" : 
+	     syminfo.root == "CT" ? "033661" :  
+	     syminfo.root == "ES" ? "13874A" :  
+	     syminfo.root == "SPX500USD" ? "13874A" : 
+	     syminfo.root == "RTY" ? "239742" : 
+	     syminfo.root == "YM" ? "12460P" :  
+	     syminfo.root == "NQ" ? "209742" : 
+	     syminfo.root == "NAS100USD" ? "209742" :
+	     syminfo.root == "PA" ? "075651" : 
+	     syminfo.root == "XPDUSD" ? "075651" :
+	     syminfo.root == "PL" ? "076651" : 
+	     syminfo.root == "XPTUSD" ? "076651" : 
+	     syminfo.root == "VX" ? "1170E1" :
+	     syminfo.root == "M6" ? "095741" :
+	     syminfo.root == "6M" ? "095741" :
+	     syminfo.root == "USDMXN" ? "095741" :
+	     syminfo.root == "MXNUSD" ? "095741" :
+	     syminfo.root == "BTCUSD" ? "133741" :
+	     syminfo.root == "BTCUSDT" ? "133741" :
+	     syminfo.root == "XBTUSD" ? "133741" :
+         ""
+  
+
+
+// Futures Open Interest 
+  
+quandl_futures_oi = "QUANDL:CFTC/" + sCode1 + "_F_L_ALL"
+
+_oi_futures       = security (quandl_futures_oi + "|0", "W", close)
+
+_vol_others       = volume
+
+
+// Switchable Weiss Wave Open Interest (Futures) / Weiss Wave Volume (Others)
+
+float _switchable = na
+
+if (adaptive=="FUTURES")
+
+    _switchable:=  _oi_futures
+    
+if (adaptive=="OTHERS")
+
+    _switchable:=  volume
+    
+
+// Essential Function : 
+
+f_sum(_src , _length) => 
+
+    _output  = 0.00 
+    
+    _length_adjusted = _length < 1 ? 1 : _length
+    
+    for i = 0 to _length_adjusted-1
+        _output := _output + _src[i]
+
+
+// MONEY FLOW INDEX (MFI)
+
+
+t_mfi = input(14 , type = input.integer , title = "MFI Period") // You can use non integer or mutable variables too !!
+
+lower = input(20 , type = input.integer , title = "Oversold")   // You can use non integer or mutable variables too !!
+upper = input(80 , type = input.integer , title = "Overbought") // You can use non integer or mutable variables too !!
+
+zero = 0 
+hundred = 100
+
+limit = 50
+
+
+// MFI
+
+upper_s = f_sum(_switchable * (change(src) <= 0 ? 0 : src), t_mfi)
+lower_s = f_sum(_switchable * (change(src) >= 0 ? 0 : src), t_mfi)
+
+
+mf = rsi(upper_s, lower_s)
+
+
+// Plot data
+
+mfp = plot(mf, color=color.new(#FFB300,0), style = plot.style_line , linewidth=2 , title = "OIMFI")
+
+stagline    = hline(limit  , color=color.new(color.blue,0) , linewidth=1, editable=false)
+upline      = hline(upper  , color=color.new(color.red,0)  , linewidth=1, editable=false)
+lowline     = hline(lower  , color=color.new(color.green,0), linewidth=1, editable=false)
+zeroline    = hline(zero   , color=color.new(color.white,0), linewidth=1, editable=false)
+hundredline = hline(hundred, color=color.new(color.white,0), linewidth=1, editable=false)
+
+
+// CLose Changed Overbought Oversold Levels
+
+col_oversold() =>
+
+    (src > src[1]  and mf < 20 ? color.new(color.green,83) : 
+     src <= src[1] and mf < 20 ? color.new(color.red,83)   : color.new(color.navy,83) )
+     
+
+col_overbought() =>
+
+    (src > src[1]  and mf > 80 ? color.new(color.green,83) : 
+     src <= src[1] and mf > 80 ? color.new(color.red,83)   : color.new(color.navy,83) )
+
+
+
+color_oversold   = col_oversold()
+color_overbought = col_overbought()
+
+
+fill(lowline  , stagline    , color=color.red  , transp=83 , title = "Bear")
+fill(stagline , upline      , color=color.green, transp=83 , title = "Bull")
+
+fill(zeroline , lowline     , color=color_oversold  , title = "Changeable Oversold")
+fill(upline   , hundredline , color=color_overbought, title = "Changeable Overbought")
+
+
